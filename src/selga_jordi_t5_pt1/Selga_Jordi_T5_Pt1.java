@@ -4,17 +4,17 @@
  */
 package selga_jordi_t5_pt1;
 
-import utils.BDUtils;
-//import utils.BDUtils;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.Vaixell;
 import model.Categoria;
+import model.Vaixell;
+import utils.BDUtils;
 
 /**
  *
@@ -39,12 +39,13 @@ public class Selga_Jordi_T5_Pt1 {
             conn = DriverManager.getConnection(url + dbName, userName, password);
 
             if (!conn.isClosed()) {
-                System.out.println("Database connection is working using TCP/IP ...");
+
 //                BDUtils.createEstructuraMysql(conn);
                 BDUtils.netejarTaules(conn);
                 inicialitzar();
                 llistarVaixells(true);
-
+                llistarVaixellsXCategoria(2);
+                llistarVaixellsOrdenats("saenior", true);
             } else {
                 System.out.println("Error");
                 System.exit(0);
@@ -87,7 +88,7 @@ public class Selga_Jordi_T5_Pt1 {
         );
 
         Vaixell v2 = new Vaixell(
-                102,
+                105,
                 "Mar Endins",
                 c2,
                 0.87,
@@ -109,7 +110,7 @@ public class Selga_Jordi_T5_Pt1 {
         );
 
         Vaixell v4 = new Vaixell(
-                104,
+                100,
                 "Llampec Blau",
                 c1,
                 0.89,
@@ -164,9 +165,14 @@ public class Selga_Jordi_T5_Pt1 {
         String query = "SELECT * FROM vaixells";
         stmt = conn.prepareStatement(query);
         ResultSet rs = stmt.executeQuery();
+        llistarVaixellsRS(rs, compensat);
+        stmt.close();
+
+    }
+
+    public static void llistarVaixellsRS(ResultSet rs, boolean compensat) throws SQLException {
         System.out.printf("%-5s %-26s %-12s %-6s %-25s %-15s %-6s %-8s %-6s\n",
                 "Codi", "Nom", "Categoria", "Rating", "Club", "Tipus", "Senior", "T.Real", compensat ? "T.Comp" : "");
-
         while (rs.next()) {
             Categoria categoria = null;
             int codi = rs.getInt("codi");
@@ -183,8 +189,6 @@ public class Selga_Jordi_T5_Pt1 {
                     codi, nom, categoria.getNom(), rating, club, tipus, senior ? "Sí" : "No", tReal, compensat ? String.format("%.2f", tComp) : "");
 
         }
-        stmt.close();
-
     }
 
     public static Categoria obtenirCategoria(int idCategoria) throws SQLException {
@@ -203,11 +207,98 @@ public class Selga_Jordi_T5_Pt1 {
         return categoria;
     }
 
-    public static void llistarVaixellsXCategoria(String categoria) {
+    public static ArrayList<Categoria> obtenirCategories() throws SQLException {
+        PreparedStatement stmt;
+        ArrayList<Categoria> categories = new ArrayList<>();
+        String query = "SELECT * FROM categories";
+        stmt = conn.prepareStatement(query);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            Categoria categoria = new Categoria();
+            categoria.setId(rs.getInt("id"));
+            categoria.setNom(rs.getString("nom"));
+            categories.add(categoria);
+        }
+        stmt.close();
+        return categories;
+    }
+
+    public static void llistarCategories() {
+        ArrayList<Categoria> categories = null;
+        try {
+            categories = obtenirCategories();
+        } catch (Exception e) {
+            System.out.println("Error al obtenir les categories + e.getMessage()");
+        }
+        if (categories == null || categories.isEmpty()) {
+            System.out.println("No hi ha categories disponibles.");
+            return;
+        }
+        System.out.printf("%-5s %-12s\n", "ID", "Nom");
+        for (Categoria categoria : categories) {
+            System.out.printf("%-5d %-12s\n", categoria.getId(), categoria.getNom());
+        }
+    }
+
+    public static void llistarVaixellsXCategoria(int idcategoria) throws SQLException {
+        PreparedStatement stmt;
+        Categoria categoria = obtenirCategoria(idcategoria);
+        System.out.println("\nCategoria: " + categoria.getNom());
+
+        String query = "SELECT * FROM vaixells WHERE id_categoria=?";
+        stmt = conn.prepareStatement(query);
+        stmt.setInt(1, idcategoria);
+        ResultSet rs = stmt.executeQuery();
+        System.out.printf("%-5s %-26s %-6s %-25s %-15s %-6s %-8s %-6s\n",
+                "Codi", "Nom", "Rating", "Club", "Tipus", "Senior", "T.Real", "T.Comp");
+        while (rs.next()) {
+
+            int codi = rs.getInt("codi");
+            String nom = rs.getString("nom");
+
+            double rating = rs.getDouble("rating");
+            String club = rs.getString("club");
+            String tipus = rs.getString("tipus_vaixell");
+            boolean senior = rs.getBoolean("senior");
+            double tReal = rs.getDouble("temps_real");
+            double tComp = tReal * rating;
+
+            System.out.printf("%-5d %-26s %-6.2f %-25s %-15s %-6s %-8.2f %-6s\n",
+                    codi, nom, rating, club, tipus, senior ? "Sí" : "No", tReal, String.format("%.2f", tComp));
+
+        }
 
     }
 
-    public static void llistarVaixellsOrdreCodi() {
+    public static void llistarVaixellsOrdenats(String ordre, boolean compensat) throws SQLException {
+        PreparedStatement stmt;
+        String query = "SELECT * FROM vaixells ORDER BY ";
+        if (ordre.equalsIgnoreCase("codi")) {
+            query += "codi";
+        } else if (ordre.equalsIgnoreCase("tempsc")) {
+            query += "temps_real * rating";
+        } else if (ordre.equalsIgnoreCase("nom")) {
+            query += "nom";
+        } else if (ordre.equalsIgnoreCase("rating")) {
+            query += "rating";
+        } else if (ordre.equalsIgnoreCase("club")) {
+            query += "club";
+        } else if (ordre.equalsIgnoreCase("tipus")) {
+            query += "tipus_vaixell";
+        } else if (ordre.equalsIgnoreCase("senior")) {
+            query += "senior";
+        } else if (ordre.equalsIgnoreCase("tempsr")) {
+            query += "temps_real";
+
+        } else {
+            System.out.println("Ordre no vàlid. Opcions: codi, nom,tempsc"
+                    + ", rating, club, tipus, senior, tempsr");
+            return;
+        }
+        stmt = conn.prepareStatement(query);
+        ResultSet rs = stmt.executeQuery();
+        llistarVaixellsRS(rs, compensat);
+        stmt.close();
 
     }
 
