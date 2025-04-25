@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import model.Categoria;
 import model.Vaixell;
 import utils.BDUtils;
+import utils.Utils;
 
 /**
  *
@@ -46,6 +47,12 @@ public class Selga_Jordi_T5_Pt1 {
                 llistarVaixells(true);
                 llistarVaixellsXCategoria(2);
                 llistarVaixellsOrdenats("saenior", true);
+                try {
+                    inserirVaixell(demanarVaixell());
+                } catch (SQLException e) {
+                    System.out.println("Error: " + e);
+                }
+
             } else {
                 System.out.println("Error");
                 System.exit(0);
@@ -241,6 +248,7 @@ public class Selga_Jordi_T5_Pt1 {
     }
 
     public static void llistarVaixellsXCategoria(int idcategoria) throws SQLException {
+        // En aquest mètode no es reutilitza codi perque el llistat és diferent
         PreparedStatement stmt;
         Categoria categoria = obtenirCategoria(idcategoria);
         System.out.println("\nCategoria: " + categoria.getNom());
@@ -302,12 +310,22 @@ public class Selga_Jordi_T5_Pt1 {
 
     }
 
-    public static void llistarVaixellsOrdreTemps() {
+    public static Vaixell demanarVaixell() throws SQLException {
+        // Demanem les dades del vaixell
+        // i les guardem en un objecte Vaixell
+        int codi = Utils.validaInt("Codi: ", "Codi incorrecte");
+        String nom = Utils.validaString("Nom: ", "Nom incorrecte");
+        llistarCategories();
+        int idCategoria = Utils.validaInt("ID Categoria: ", "ID Categoria incorrecte");
+        Categoria categoria = obtenirCategoria(idCategoria);
+        double rating = Utils.validaDouble("Rating: ", "Rating incorrecte");
+        String club = Utils.validaString("Club: ", "Club incorrecte");
+        String tipus = Utils.validaString("Tipus: ", "Tipus incorrecte");
+        boolean senior = Utils.validaSN("Senior (s/n): ", "Valor incorrecte");
+        double tempsReal = Utils.validaDouble("Temps real: ", "Temps real incorrecte");
+        // Creem l'objecte Vaixell
 
-    }
-
-    public static Vaixell demanaVaixell() {
-        Vaixell vaixell = null;
+        Vaixell vaixell = new Vaixell(codi, nom, categoria, rating, club, tipus, senior, tempsReal);
 
         return vaixell;
     }
