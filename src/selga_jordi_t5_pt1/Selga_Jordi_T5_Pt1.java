@@ -15,7 +15,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Categoria;
 import model.Vaixell;
-import utils.BDUtils;
 import utils.Utils;
 
 /**
@@ -43,17 +42,19 @@ public class Selga_Jordi_T5_Pt1 {
             if (!conn.isClosed()) {
 
 //                BDUtils.createEstructuraMysql(conn);
-                BDUtils.netejarTaules(conn);
-                inicialitzar();
+//                BDUtils.netejarTaules(conn);
+//                inicialitzar();
                 try {
-                    llistarVaixells(true);
-                    llistarVaixellsXCategoria(2);
-                    llistarVaixellsOrdenats("senior", true);
-//                    eliminarVaixell(101);
-                    modificarVaixell(100);
-                    llistarVaixells(true);
+//                    llistarVaixells(true);
+//                    llistarVaixellsXCategoria(2);
+//                    llistarVaixellsOrdenats("senior", true);
+                    ////                    eliminarVaixell(101);
+//                    modificarVaixell(100);
+//                    llistarVaixells(true);
+
 
 //                    inserirVaixell(demanarVaixell());
+mostrarMenu();
                 } catch (SQLException e) {
                     System.out.println("Error: " + e);
                 }
@@ -141,6 +142,56 @@ public class Selga_Jordi_T5_Pt1 {
             Logger.getLogger(Selga_Jordi_T5_Pt1.class.getName()).log(Level.SEVERE, null, ex);
         }
 
+    }
+
+    public static void mostrarMenu() throws SQLException {
+        Scanner sc = new Scanner(System.in);
+        int opcio;
+
+        do {
+            System.out.println("\n===== MENÚ DE GESTIÓ DE VAIXELLS =====");
+            System.out.println("1. Llistar vaixells");
+            System.out.println("2. Llistar vaixells per categoria");
+            System.out.println("3. Llistar vaixells ordenats");
+            System.out.println("4. Afegir nou vaixell");
+            System.out.println("5. Modificar vaixell");
+            System.out.println("6. Eliminar vaixell");
+            System.out.println("0. Sortir");
+            System.out.print("Escull una opció: ");
+            opcio = Integer.parseInt(sc.nextLine());
+
+            switch (opcio) {
+                case 1 ->
+                    llistarVaixells(true);
+                case 2 -> {
+                    llistarCategories();
+                    int idCat = Utils.validaInt("Introdueix ID de categoria: ", "ID incorrecte");
+                    llistarVaixellsXCategoria(idCat);
+                }
+                case 3 -> {
+                    System.out.print("Camp d'ordenació (codi, nom, tempsc, rating, club, tipus, senior, tempsr): ");
+                    String ordre = sc.nextLine();
+                    llistarVaixellsOrdenats(ordre, true);
+                }
+                case 4 -> {
+                    Vaixell nou = demanarVaixell();
+                    inserirVaixell(nou);
+                }
+                case 5 -> {
+                    int codiMod = Utils.validaInt("Codi del vaixell a modificar: ", "Codi incorrecte");
+                    modificarVaixell(codiMod);
+                }
+                case 6 -> {
+                    int codiDel = Utils.validaInt("Codi del vaixell a eliminar: ", "Codi incorrecte");
+                    eliminarVaixell(codiDel);
+                }
+                case 0 ->
+                    System.out.println("Sortint del programa...");
+                default ->
+                    System.out.println("Opció no vàlida.");
+            }
+
+        } while (opcio != 0);
     }
 
     public static void inserirVaixell(Vaixell vaixell) throws SQLException {
@@ -319,8 +370,9 @@ public class Selga_Jordi_T5_Pt1 {
         stmt = conn.prepareStatement(query);
         stmt.setInt(1, codi);
         ResultSet rs = stmt.executeQuery();
-        Vaixell vaixell = new Vaixell();
+        Vaixell vaixell = null;
         if (rs.next()) {
+            vaixell = new Vaixell();
             vaixell.setCodi(rs.getInt("codi"));
             vaixell.setNom(rs.getString("nom"));
             vaixell.setRating(rs.getDouble("rating"));
