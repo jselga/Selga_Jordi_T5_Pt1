@@ -28,7 +28,7 @@ public class Selga_Jordi_T5_Pt1 {
     static final String driver = "com.mysql.cj.jdbc.Driver";
     static final String userName = "root";
     static final String password = "root";
-    static Connection conn = null;
+    public static Connection conn = null;
 
     /**
      * @param args the command line arguments
@@ -274,10 +274,10 @@ mostrarMenu();
             vaixell.setTipus(tipus);
         }
 
-        System.out.print("És sènior? actual (" + (vaixell.isSenior() ? "Sí" : "No") + ") [sí/no]: ");
+        System.out.print("És sènior? actual (" + (vaixell.isSenior() ? "Sí" : "No") + ") [s/n]: ");
         String seniorStr = sc.nextLine();
         if (!seniorStr.isBlank()) {
-            vaixell.setSenior(seniorStr.equalsIgnoreCase("sí"));
+            vaixell.setSenior(seniorStr.equalsIgnoreCase("s"));
         }
 
         System.out.print("Temps real actual (" + vaixell.getTempsReal() + "): ");
@@ -302,7 +302,7 @@ mostrarMenu();
 
         System.out.println("\nDades actualitzades:");
         mostrarVaixell(vaixell);
-        if (Utils.validaSN("Actualitzar a la BBDD? (S/N)", "Resposta incorrecte")) {
+        if (Utils.validaSN("Actualitzar a la BBDD? (S/N)", "Resposta incorrecta")) {
             actualitzarVaixell(vaixell);
         } else {
             System.out.println("No s'han actualitzat els canvis a la BBDD");
@@ -411,21 +411,27 @@ mostrarMenu();
             double tReal = rs.getDouble("temps_real");
             double tComp = tReal * rating;
             categoria = obtenirCategoria(idCategoria);
-            System.out.printf("%-5d %-26s %-12s %-6.2f %-25s %-15s %-6s %-8.2f %-6s\n",
-                    codi, nom, categoria.getNom(), rating, club, tipus, senior ? "Sí" : "No", tReal, compensat ? String.format("%.2f", tComp) : "");
+            if (categoria != null) {
+                System.out.printf("%-5d %-26s %-12s %-6.2f %-25s %-15s %-6s %-8.2f %-6s\n",
+                        codi, nom, categoria.getNom(), rating, club, tipus, senior ? "Sí" : "No", tReal, compensat ? String.format("%.2f", tComp) : "");
+            } else {
+                System.out.printf("%-5d %-26s %-12s %-6.2f %-25s %-15s %-6s %-8.2f %-6s\n",
+                        codi, nom, "------------", rating, club, tipus, senior ? "Sí" : "No", tReal, compensat ? String.format("%.2f", tComp) : "");
+            }
 
         }
     }
 
     public static Categoria obtenirCategoria(int idCategoria) throws SQLException {
         PreparedStatement stmt;
-        Categoria categoria = new Categoria();
+        Categoria categoria = null;
+
         String query = "SELECT * FROM categories WHERE id=? ";
         stmt = conn.prepareStatement(query);
         stmt.setInt(1, idCategoria);
         ResultSet rs = stmt.executeQuery();
         if (rs.next()) {
-
+            categoria = new Categoria();
             categoria.setNom(rs.getString("nom"));
             categoria.setId(idCategoria);
         }
