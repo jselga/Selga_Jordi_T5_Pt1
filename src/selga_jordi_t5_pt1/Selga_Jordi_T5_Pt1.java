@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Categoria;
@@ -44,11 +45,15 @@ public class Selga_Jordi_T5_Pt1 {
 //                BDUtils.createEstructuraMysql(conn);
                 BDUtils.netejarTaules(conn);
                 inicialitzar();
-                llistarVaixells(true);
-                llistarVaixellsXCategoria(2);
-                llistarVaixellsOrdenats("saenior", true);
                 try {
-                    inserirVaixell(demanarVaixell());
+                    llistarVaixells(true);
+                    llistarVaixellsXCategoria(2);
+                    llistarVaixellsOrdenats("senior", true);
+//                    eliminarVaixell(101);
+                    modificarVaixell(100);
+                    llistarVaixells(true);
+
+//                    inserirVaixell(demanarVaixell());
                 } catch (SQLException e) {
                     System.out.println("Error: " + e);
                 }
@@ -165,6 +170,168 @@ public class Selga_Jordi_T5_Pt1 {
         int count = stmt.executeUpdate();
         stmt.close();
         System.out.println(count + " categoria inserida a la taula categories");
+    }
+
+    public static void mostrarVaixell(Vaixell v) {
+        System.out.println("===== FITXA VAIXELL =====");
+        System.out.println("Codi:        " + v.getCodi());
+        System.out.println("Nom:         " + v.getNom());
+        System.out.println("Categoria:   " + v.getCategoria().getNom());
+        System.out.printf("Rating:      %.2f%n", v.getRating());
+        System.out.println("Club:        " + v.getClub());
+        System.out.println("Tipus:       " + v.getTipus());
+        System.out.println("Senior:      " + (v.isSenior() ? "Sí" : "No"));
+        System.out.printf("Temps real:  %.2f%n", v.getTempsReal());
+        System.out.println("=========================");
+    }
+
+    public static void modificarVaixell(int codi) throws SQLException {
+        Scanner sc = new Scanner(System.in);
+        Vaixell vaixell = obtenirVaixell(codi);
+
+        if (vaixell == null) {
+            System.out.println("No existeix cap vaixell amb aquest codi.");
+            return;
+        }
+
+        // Mostrar dades actuals
+        mostrarVaixell(vaixell);
+
+        System.out.println("\n--- Modificació de dades ---");
+
+        System.out.print("Nom actual (" + vaixell.getNom() + "): ");
+        String nom = sc.nextLine();
+        if (!nom.isBlank()) {
+            vaixell.setNom(nom);
+        }
+
+        System.out.print("Rating actual (" + vaixell.getRating() + "): ");
+        String ratingStr = sc.nextLine();
+        if (!ratingStr.isBlank()) {
+            vaixell.setRating(Double.parseDouble(ratingStr));
+        }
+
+        System.out.print("Club actual (" + vaixell.getClub() + "): ");
+        String club = sc.nextLine();
+        if (!club.isBlank()) {
+            vaixell.setClub(club);
+        }
+
+        System.out.print("Tipus actual (" + vaixell.getTipus() + ") [regata/creuer/creuer-regata]: ");
+        String tipus = sc.nextLine();
+        if (!tipus.isBlank()) {
+            vaixell.setTipus(tipus);
+        }
+
+        System.out.print("És sènior? actual (" + (vaixell.isSenior() ? "Sí" : "No") + ") [sí/no]: ");
+        String seniorStr = sc.nextLine();
+        if (!seniorStr.isBlank()) {
+            vaixell.setSenior(seniorStr.equalsIgnoreCase("sí"));
+        }
+
+        System.out.print("Temps real actual (" + vaixell.getTempsReal() + "): ");
+        String tRealStr = sc.nextLine();
+        if (!tRealStr.isBlank()) {
+            vaixell.setTempsReal(Double.parseDouble(tRealStr));
+        }
+        Categoria categoria = obtenirCategoria(vaixell.getCategoria().getId());
+        System.out.print("Categoria actual (" + categoria.getId() + "): " + categoria.getNom() + ")");
+        System.out.println("\nCategories disponibles:");
+        llistarCategories();
+        String catIdStr = sc.nextLine();
+        if (!catIdStr.isBlank()) {
+            int novaCategoriaId = Integer.parseInt(catIdStr);
+            Categoria novaCategoria = obtenirCategoria(novaCategoriaId);
+            if (novaCategoria != null) {
+                vaixell.setCategoria(novaCategoria);
+            } else {
+                System.out.println("Categoria inexistent, no s'ha modificat.");
+            }
+        }
+
+        System.out.println("\nDades actualitzades:");
+        mostrarVaixell(vaixell);
+        if (Utils.validaSN("Actualitzar a la BBDD? (S/N)", "Resposta incorrecte")) {
+            actualitzarVaixell(vaixell);
+        } else {
+            System.out.println("No s'han actualitzat els canvis a la BBDD");
+        }
+
+    }
+
+    public static void actualitzarVaixell(Vaixell vaixell) throws SQLException {
+        String query = """
+        UPDATE vaixells SET
+            nom = ?,
+            id_categoria = ?,
+            rating = ?,
+            club = ?,
+            tipus_vaixell = ?,
+            senior = ?,
+            temps_real = ?
+        WHERE codi = ?
+    """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, vaixell.getNom());
+            stmt.setInt(2, vaixell.getCategoria().getId());
+            stmt.setDouble(3, vaixell.getRating());
+            stmt.setString(4, vaixell.getClub());
+            stmt.setString(5, vaixell.getTipus());
+            stmt.setBoolean(6, vaixell.isSenior());
+            stmt.setDouble(7, vaixell.getTempsReal());
+            stmt.setInt(8, vaixell.getCodi());
+
+            int filesAfectades = stmt.executeUpdate();
+            if (filesAfectades > 0) {
+                System.out.println("Vaixell actualitzat correctament.");
+            } else {
+                System.out.println("No s'ha pogut actualitzar el vaixell (potser no existeix).");
+            }
+        }
+    }
+
+    public static void eliminarVaixell(Vaixell vaixell) throws SQLException {
+        PreparedStatement stmt;
+        String query = "DELETE from vaixells WHERE codi=?";
+        stmt = conn.prepareStatement(query);
+        stmt.setInt(1, vaixell.getCodi());
+        int count = stmt.executeUpdate();
+        System.out.printf("S'ha eliminat  %d vaixell(s)\n", count);
+        stmt.close();
+    }
+
+    public static void eliminarVaixell(int codi) throws SQLException {
+        Vaixell vaixell = obtenirVaixell(codi);
+        if (vaixell == null) {
+            System.out.printf("No existeix cap vaixell amb el codi %d\n", codi);
+        } else {
+            mostrarVaixell(vaixell);
+            if (Utils.validaSN("Estàs segur que vols eliminar aquest vaixell?", "Resposta no correcta")) {
+                eliminarVaixell(vaixell);
+            }
+        }
+    }
+
+    public static Vaixell obtenirVaixell(int codi) throws SQLException {
+        PreparedStatement stmt;
+        String query = "SELECT * FROM vaixells WHERE codi=?";
+        stmt = conn.prepareStatement(query);
+        stmt.setInt(1, codi);
+        ResultSet rs = stmt.executeQuery();
+        Vaixell vaixell = new Vaixell();
+        if (rs.next()) {
+            vaixell.setCodi(rs.getInt("codi"));
+            vaixell.setNom(rs.getString("nom"));
+            vaixell.setRating(rs.getDouble("rating"));
+            vaixell.setClub(rs.getString("club"));
+            vaixell.setTipus(rs.getString("tipus_vaixell"));
+            vaixell.setSenior(rs.getBoolean("senior"));
+            vaixell.setTempsReal(rs.getDouble("temps_real"));
+            vaixell.setCategoria(obtenirCategoria(rs.getInt("id_categoria")));
+
+        }
+        return vaixell;
     }
 
     public static void llistarVaixells(boolean compensat) throws SQLException {
